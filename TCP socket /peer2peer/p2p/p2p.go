@@ -3,7 +3,7 @@ package p2p
 import (
 	"fmt"
 	"net"
-	"encoding/json"
+	"github.com/golang/protobuf/proto"
 )
 
 type P2P struct {
@@ -29,19 +29,19 @@ func (p2p *P2P) Send(port int, message string) {
 	defer conn.Close()
 	defer fmt.Println("Socket is closed")
 	fmt.Println("Client ",conn.LocalAddr()," connected succesfull")
-	msgJson := map[string]interface{}{
-		"method": "Get",
-		"message": message,
+	msgProtobuf := &Message{
+		Method: "Get",
+		Message: message,
 	}
-	jsonData, err := json.Marshal(msgJson)
+	jsonData, err := proto.Marshal(msgProtobuf)
 	checkErr(err)
     conn.Write(jsonData)
 	fmt.Println("wait")
 	readBuf := make([]byte, 4096)
 	len, err := conn.Read(readBuf)
 	if (err == nil) {
-		var value map[string]interface{}
-		err = json.Unmarshal(readBuf[:len], &value)
+		response := &Message{}
+		err = proto.Unmarshal(readBuf[:len], response)
 		fmt.Println(string(readBuf))
 	}
 	conn.Close()

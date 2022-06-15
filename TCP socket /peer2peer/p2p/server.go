@@ -3,8 +3,8 @@ package p2p
 import (
 	"net"
 	"fmt"
-	"encoding/json"
 	// "bytes"
+	"github.com/golang/protobuf/proto"
 	"log"
 )
 
@@ -52,11 +52,6 @@ func (server *Server) Listener() {
 	}
 }
 
-type Json struct {
-	Method string `json:"method"`
-	Message string `json:"message"`
-}
-
 func request(con net.Conn) {
 	defer fmt.Println("Socket is closed")
 	defer con.Close()
@@ -65,26 +60,27 @@ func request(con net.Conn) {
 		readBuf := make([]byte, 4096)
 		len, err := con.Read(readBuf)
 		if (err == nil) {
-			var value map[string]interface{}
-			err = json.Unmarshal(readBuf[:len], &value)
+			responseData := &Message{}
+			err = proto.Unmarshal(readBuf[:len], responseData)
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
 			fmt.Println(string(readBuf))
-			response(con, value)
+			fmt.Println(responseData)
+			response(con, responseData)
 			break
 		}
 		
 	}		
 }
 
-func response(con net.Conn, value map[string]interface{}) {
-	msgJson := map[string]interface{}{
-		"method": value["method"],
-		"message": "I'm very busy",
+func response(con net.Conn, responseData *Message) {
+	msgProtobuf := &Message{
+		Method: responseData.GetMethod(),
+		Message: "I'm very busy",
 	}
-	jsonData, err := json.Marshal(msgJson)
+	jsonData, err := proto.Marshal(msgProtobuf)
 	checkErr(err)
     con.Write(jsonData)
 	con.Close()

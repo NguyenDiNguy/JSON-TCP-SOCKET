@@ -1,0 +1,8 @@
+syntax = 'proto3';
+
+package p2p;
+
+message Message {
+    string method = 1;
+    string message = 2;
+}
