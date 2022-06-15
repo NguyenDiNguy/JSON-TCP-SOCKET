@@ -3,9 +3,10 @@ package p2p
 import (
 	"net"
 	"fmt"
-	// "bytes"
+	"bytes"
 	"github.com/golang/protobuf/proto"
 	"log"
+	"encoding/binary"
 )
 
 type Server struct {
@@ -57,24 +58,39 @@ func request(con net.Conn) {
 	defer con.Close()
 	for {
 		fmt.Println("wait")
-		readBuf := make([]byte, 4096)
-		len, err := con.Read(readBuf)
-		if (err == nil) {
-			responseData := &Message{}
-			err = proto.Unmarshal(readBuf[:len], responseData)
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-			fmt.Println(string(readBuf))
-			fmt.Println(responseData)
-			response(con, responseData)
+		bl := make([]byte, 4)
+		_, err := con.Read(bl)
+		if err != nil {
 			break
 		}
-		
+		rLen := binary.LittleEndian.Uint32(bl)
+		mlen := rLen
+		fmt.Println("len",rLen)
+		var buf bytes.Buffer
+		for rLen > 0 {
+			
+			readChilBuf := make([]byte, 100000000)
+			len, err := con.Read(readChilBuf)
+			fmt.Println(len, err)
+			
+			fmt.Println("len", rLen, "-", len)
+			
+			if (err == nil) {
+				rLen-=uint32(len)
+				buf.Write(readChilBuf[:len])
+			}else{ break }
+			
+		}
+		responseData := &Message{}
+		err = proto.Unmarshal(buf.Next(int(mlen)), responseData)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		response(con, responseData)
+		break
 	}		
 }
-
 func response(con net.Conn, responseData *Message) {
 	msgProtobuf := &Message{
 		Method: responseData.GetMethod(),

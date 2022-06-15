@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 	"github.com/golang/protobuf/proto"
+	"../randtext"
+	"encoding/binary"
 )
 
 type P2P struct {
@@ -31,11 +33,15 @@ func (p2p *P2P) Send(port int, message string) {
 	fmt.Println("Client ",conn.LocalAddr()," connected succesfull")
 	msgProtobuf := &Message{
 		Method: "Get",
-		Message: message,
+		Message: randtext.RandStringBytesMaskImprSrcUnsafe(5000000),
 	}
 	jsonData, err := proto.Marshal(msgProtobuf)
-	checkErr(err)
-    conn.Write(jsonData)
+	if (err != nil){ return }
+	l := uint32(len(jsonData))
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf[0:], l)
+	buf = append(buf, jsonData...)
+    conn.Write(buf)
 	fmt.Println("wait")
 	readBuf := make([]byte, 4096)
 	len, err := conn.Read(readBuf)

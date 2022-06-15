@@ -2,7 +2,6 @@ package main
 
 import (
 	"./p2p"
-	// "sync"
 	"bufio"
 	"os"
 	"fmt"
@@ -17,7 +16,6 @@ var function = map[string](string){
 }
 
 func main() {
-	//var wg sync.WaitGroup
 	p2p := new(p2p.P2P)
 	for {
 		reader := bufio.NewReader(os.Stdin)
