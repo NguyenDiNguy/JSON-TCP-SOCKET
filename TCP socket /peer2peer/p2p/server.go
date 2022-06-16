@@ -53,15 +53,11 @@ func (server *Server) Listener() {
 	}
 }
 
-func request(con net.Conn) {
-	defer fmt.Println("Socket is closed")
-	defer con.Close()
-	for {
-		fmt.Println("wait")
+func captureFullMessage(con net.Conn) (*Message, error) {
 		bl := make([]byte, 4)
 		_, err := con.Read(bl)
 		if err != nil {
-			break
+			return nil, err
 		}
 		rLen := binary.LittleEndian.Uint32(bl)
 		mlen := rLen
@@ -81,26 +77,42 @@ func request(con net.Conn) {
 			}else{ break }
 			
 		}
-		responseData := &Message{}
-		err = proto.Unmarshal(buf.Next(int(mlen)), responseData)
+		requestData := &Message{}
+		err = proto.Unmarshal(buf.Next(int(mlen)), requestData)
 		if err != nil {
 			fmt.Println(err)
-			return
+			return nil, err
 		}
-		response(con, responseData)
-		break
+		return requestData, nil
+}
+
+func request(con net.Conn) {
+	defer fmt.Println("Socket is closed")
+	defer con.Close()
+	for {
+		fmt.Println("wait")
+		requestData := &Message{}
+		requestData, err:= captureFullMessage(con)
+		if err != nil {
+			fmt.Println(err)
+			return		
+		}
+		response(con, requestData)
 	}		
 }
-func response(con net.Conn, responseData *Message) {
+func response(con net.Conn, requestData *Message) {
 	msgProtobuf := &Message{
-		Method: responseData.GetMethod(),
-		Message: "I'm very busy",
+		Method: requestData.GetMethod(),
+		Message: fmt.Sprintf("I'm very busy with %d", len(requestData.Message)),
 	}
 	jsonData, err := proto.Marshal(msgProtobuf)
 	checkErr(err)
     con.Write(jsonData)
-	con.Close()
 }
+
+
+
+
 
 func checkErr(err error) {
 	if err != nil {

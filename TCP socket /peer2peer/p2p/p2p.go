@@ -31,9 +31,15 @@ func (p2p *P2P) Send(port int, message string) {
 	defer conn.Close()
 	defer fmt.Println("Socket is closed")
 	fmt.Println("Client ",conn.LocalAddr()," connected succesfull")
+	for i:=0;i<3;i++ {
+		sendRandomText(conn)
+	}
+} 
+
+func sendRandomText(con net.Conn){
 	msgProtobuf := &Message{
 		Method: "Get",
-		Message: randtext.RandStringBytesMaskImprSrcUnsafe(5000000),
+		Message: randtext.RandStringBytesMaskImprSrcUnsafe(5050505),
 	}
 	jsonData, err := proto.Marshal(msgProtobuf)
 	if (err != nil){ return }
@@ -41,14 +47,13 @@ func (p2p *P2P) Send(port int, message string) {
 	buf := make([]byte, 4)
 	binary.LittleEndian.PutUint32(buf[0:], l)
 	buf = append(buf, jsonData...)
-    conn.Write(buf)
+    con.Write(buf)
 	fmt.Println("wait")
 	readBuf := make([]byte, 4096)
-	len, err := conn.Read(readBuf)
+	len, err := con.Read(readBuf)
 	if (err == nil) {
 		response := &Message{}
 		err = proto.Unmarshal(readBuf[:len], response)
 		fmt.Println(string(readBuf))
 	}
-	conn.Close()
-} 
+}
